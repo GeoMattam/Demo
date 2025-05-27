@@ -1,0 +1,48 @@
+import csv
+import requests
+
+# === Step 1: Read CSV and convert to formatted prompt string ===
+def csv_to_prompt(file_path):
+    with open(file_path, newline='', encoding='utf-8') as csvfile:
+        reader = csv.reader(csvfile)
+        rows = list(reader)
+        header = rows[0]
+        data_rows = rows[1:]
+
+        prompt = "Here is the CSV data:\n\n"
+        prompt += " | ".join(header) + "\n"
+        prompt += "-" * (len(prompt)) + "\n"
+
+        for row in data_rows:
+            prompt += " | ".join(row) + "\n"
+        
+        prompt += "\nPlease analyze this data or summarize it."
+        return prompt
+
+# === Step 2: Send prompt to Ollama (Gemma model) ===
+def send_to_ollama(prompt, model="gemma:7b"):
+    url = "http://localhost:11434/api/generate"  # Default Ollama endpoint
+    payload = {
+        "model": model,
+        "prompt": prompt,
+        "stream": False
+    }
+
+    response = requests.post(url, json=payload)
+    if response.status_code == 200:
+        result = response.json()
+        return result.get("response", "")
+    else:
+        raise Exception(f"Ollama API Error: {response.status_code} - {response.text}")
+
+# === Step 3: Run ===
+if __name__ == "__main__":
+    csv_path = "input.csv"  # Change to your CSV path
+    try:
+        prompt = csv_to_prompt(csv_path)
+        print("Sending prompt to Gemma...\n")
+        output = send_to_ollama(prompt)
+        print("💡 Model Response:\n")
+        print(output)
+    except Exception as e:
+        print(f"❌ Error: {e}")
